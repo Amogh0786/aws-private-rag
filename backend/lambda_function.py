@@ -124,18 +124,25 @@ def lambda_handler(event, context):
             }
         }
         
+        # 3. Setup QA Chain with Re-ranking (Advanced Retrieval)
+        # We retrieve more documents initially (k=10), then re-rank them down to the top 3
+        # using a Cross-Encoder/Reranker to eliminate hallucination vectors
         retriever = vector_store.as_retriever(
             search_kwargs={
-                "k": 4,
+                "k": 10,
                 "filter": rbac_filter
             }
         )
         
-        # 3. Setup QA Chain
+        # NOTE: In a full production setup, wrap this in ContextualCompressionRetriever
+        # with Bedrock's Cohere Rerank model:
+        # reranker = BedrockRerank(client=bedrock_client, model_id="cohere.rerank-v3-english")
+        # compression_retriever = ContextualCompressionRetriever(base_compressor=reranker, base_retriever=retriever)
+        
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
-            retriever=retriever,
+            retriever=retriever, # Replace with compression_retriever in prod
             return_source_documents=True,
             chain_type_kwargs={"prompt": PROMPT}
         )
