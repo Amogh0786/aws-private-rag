@@ -17,8 +17,11 @@ logger.setLevel(logging.INFO)
 
 # --- Environment Variables ---
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
-# Ensure the OpenSearch endpoint is prefixed with https://
 AOSS_ENDPOINT = os.environ.get("AOSS_ENDPOINT") 
+# CRITICAL FIX: Ensure AOSS_ENDPOINT has https:// prefix
+if AOSS_ENDPOINT and not AOSS_ENDPOINT.startswith("https://"):
+    AOSS_ENDPOINT = f"https://{AOSS_ENDPOINT}"
+    
 # e.g., https://vpce-0123456789-abcde.bedrock-runtime.us-east-1.vpce.amazonaws.com
 BEDROCK_ENDPOINT_URL = os.environ.get("BEDROCK_ENDPOINT_URL") 
 INDEX_NAME = os.environ.get("INDEX_NAME", "rag-index")

@@ -14,6 +14,10 @@ logger.setLevel(logging.INFO)
 # Environment Variables
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 AOSS_ENDPOINT = os.environ.get("AOSS_ENDPOINT")
+# CRITICAL FIX: Ensure AOSS_ENDPOINT has https:// prefix (Terraform output sometimes omits it)
+if AOSS_ENDPOINT and not AOSS_ENDPOINT.startswith("https://"):
+    AOSS_ENDPOINT = f"https://{AOSS_ENDPOINT}"
+    
 BEDROCK_ENDPOINT_URL = os.environ.get("BEDROCK_ENDPOINT_URL")
 INDEX_NAME = os.environ.get("INDEX_NAME", "rag-index")
 

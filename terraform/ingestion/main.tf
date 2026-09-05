@@ -109,3 +109,39 @@ resource "aws_iam_role_policy" "ingestion_policy" {
     ]
   })
 }
+
+# CRITICAL FIX: The Ingestion Lambda needs a Data Access Policy to write to OpenSearch
+resource "aws_opensearchserverless_security_policy" "ingestion_data_policy" {
+  name        = "rag-ingestion-data-policy"
+  type        = "data"
+  description = "Data access policy for Ingestion Lambda role"
+  policy      = jsonencode([
+    {
+      Rules = [
+        {
+          ResourceType = "collection"
+          Resource     = ["collection/rag-vector-store"]
+          Permission   = [
+            "aoss:CreateCollectionItems",
+            "aoss:DeleteCollectionItems",
+            "aoss:UpdateCollectionItems",
+            "aoss:DescribeCollectionItems"
+          ]
+        },
+        {
+          ResourceType = "index"
+          Resource     = ["index/rag-vector-store/*"]
+          Permission   = [
+            "aoss:CreateIndex",
+            "aoss:DeleteIndex",
+            "aoss:UpdateIndex",
+            "aoss:DescribeIndex",
+            "aoss:ReadDocument",
+            "aoss:WriteDocument"
+          ]
+        }
+      ]
+      Principal = [aws_iam_role.ingestion_role.arn]
+    }
+  ])
+}

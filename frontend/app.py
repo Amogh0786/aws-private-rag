@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import os
+import uuid
 
 # --- Configuration ---
 # In a real deployment, this environment variable is injected by your container orchestrator (e.g., ECS)
@@ -14,6 +15,10 @@ st.markdown("""
 Welcome to the zero-trust internal knowledge portal. 
 Ask questions about company documents. Your prompts and data **never** leave the secure AWS network.
 """)
+
+# CRITICAL FIX: Track a unique session ID for DynamoDB conversation memory
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -36,10 +41,11 @@ if prompt := st.chat_input("Ask a question about internal policies, architecture
     # Add to session state
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Prepare payload for the Private API, injecting the user's RBAC group
+    # Prepare payload for the Private API, injecting the user's RBAC group and session ID
     payload = {
         "query": prompt,
-        "user_group": user_group
+        "user_group": user_group,
+        "session_id": st.session_state.session_id
     }
     headers = {"Content-Type": "application/json"}
     

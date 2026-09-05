@@ -102,3 +102,16 @@ resource "aws_vpc_endpoint" "interface_endpoints" {
     Environment = var.environment
   }
 }
+
+# S3 Gateway Endpoint (CRITICAL FIX: Allows Private Subnets to reach S3 without NAT)
+resource "aws_vpc_endpoint" "s3_gateway" {
+  vpc_id            = aws_vpc.private_rag_vpc.id
+  service_name      = "com.amazonaws.${var.aws_region}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.private_rt.id]
+
+  tags = {
+    Name = "PrivateRAG-S3-Gateway"
+    Environment = var.environment
+  }
+}
