@@ -24,6 +24,11 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# Mock Single Sign-On (SSO) Context
+st.sidebar.title("🔐 User Identity")
+st.sidebar.markdown("In production, this is automatically injected by AWS Cognito/SSO.")
+user_group = st.sidebar.selectbox("Simulate User Group", ["public", "engineering", "hr", "finance", "executive"])
+
 # React to user input
 if prompt := st.chat_input("Ask a question about internal policies, architecture, or data..."):
     # Display user message
@@ -31,8 +36,11 @@ if prompt := st.chat_input("Ask a question about internal policies, architecture
     # Add to session state
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Prepare payload for the Private API
-    payload = {"query": prompt}
+    # Prepare payload for the Private API, injecting the user's RBAC group
+    payload = {
+        "query": prompt,
+        "user_group": user_group
+    }
     headers = {"Content-Type": "application/json"}
     
     with st.chat_message("assistant"):

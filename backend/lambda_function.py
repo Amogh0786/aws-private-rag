@@ -109,11 +109,26 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Missing 'query' in request body."})
             }
             
-        logger.info(f"Received internal query payload.")
+        # Extract user context for Document-Level Security (RBAC)
+        user_group = body.get('user_group', 'public') # Default to public access only
         
-        # 2. Configure Retriever
+        logger.info(f"Received internal query payload for group: {user_group}")
+        
+        # 2. Configure Retriever with RBAC Filter
+        # Only retrieves documents where the metadata 'allowed_groups' contains the user's group
+        rbac_filter = {
+            "bool": {
+                "filter": {
+                    "term": {"metadata.allowed_groups": user_group}
+                }
+            }
+        }
+        
         retriever = vector_store.as_retriever(
-            search_kwargs={"k": 4} # Retrieve top 4 most relevant chunks
+            search_kwargs={
+                "k": 4,
+                "filter": rbac_filter
+            }
         )
         
         # 3. Setup QA Chain
