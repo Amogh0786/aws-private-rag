@@ -76,10 +76,17 @@ except Exception as e:
     raise
 
 # Initialize LLM model (Claude 3 Sonnet) via PrivateLink Bedrock client
+# Integrating Amazon Bedrock Guardrails for PII/Toxic Content filtering
 llm = ChatBedrock(
     client=bedrock_client,
     model_id="anthropic.claude-3-sonnet-20240229-v1:0",
-    model_kwargs={"temperature": 0.0}
+    model_kwargs={
+        "temperature": 0.0,
+        "amazon-bedrock-guardrailConfig": {
+            "guardrailIdentifier": os.environ.get("GUARDRAIL_ID", "default-guardrail-id"),
+            "guardrailVersion": "DRAFT"
+        }
+    }
 )
 
 # --- Guardrails & Prompting ---
