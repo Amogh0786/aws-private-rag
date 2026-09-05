@@ -8,7 +8,8 @@ from opensearchpy import RequestsAWSV4SignerAuth
 from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain_aws import BedrockEmbeddings, ChatBedrock
 from langchain.prompts import PromptTemplate
-from langchain.chains import RetrievalQA
+from langchain.chains import ConversationalRetrievalChain
+from langchain_community.chat_message_histories import DynamoDBChatMessageHistory
 
 # Configure structured logging
 logger = logging.getLogger()
@@ -139,17 +140,31 @@ def lambda_handler(event, context):
         # reranker = BedrockRerank(client=bedrock_client, model_id="cohere.rerank-v3-english")
         # compression_retriever = ContextualCompressionRetriever(base_compressor=reranker, base_retriever=retriever)
         
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=retriever, # Replace with compression_retriever in prod
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": PROMPT}
+        # Setup DynamoDB Message History
+        session_id = body.get('session_id', 'default_session')
+        message_history = DynamoDBChatMessageHistory(
+            table_name="private-rag-conversation-history",
+            session_id=session_id
         )
         
-        # 4. Execute Private RAG Pipeline
+        # 3. Setup Conversational QA Chain with Re-ranking (Advanced Retrieval)
+        qa_chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=retriever, # Replace with compression_retriever in prod
+            return_source_documents=True,
+            combine_docs_chain_kwargs={"prompt": PROMPT}
+        )
+        
+        # 4. Execute Private RAG Pipeline with Memory
         logger.info("Executing Vector Search and LLM context generation...")
-        response = qa_chain.invoke({"query": user_query})
+        response = qa_chain.invoke({
+            "question": user_query,
+            "chat_history": message_history.messages
+        })
+        
+        # Save interaction to DynamoDB
+        message_history.add_user_message(user_query)
+        message_history.add_ai_message(response["answer"])
         
         # 5. Format & Return Response
         source_docs = [
