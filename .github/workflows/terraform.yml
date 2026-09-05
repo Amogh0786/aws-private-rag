@@ -1,0 +1,30 @@
+name: 'Terraform Validation'
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Format
+      run: terraform fmt -check -recursive
+      working-directory: ./terraform
+
+    - name: Terraform Init and Validate
+      run: |
+        for dir in network database api; do
+          echo "Validating $dir..."
+          cd terraform/$dir
+          terraform init -backend=false
+          terraform validate
+          cd ../..
+        done
